@@ -1,0 +1,156 @@
+﻿@page "/"
+
+<PageTitle>Index</PageTitle>
+
+<h1>Hello, world!</h1>
+
+<input @bind="FName" />
+<input @bind="LName" />
+<button class="btn btn-primary" @onclick="FilterNames">Click me</button>
+<ul>
+    @foreach (var n in result)
+    {
+        if(n is not null)
+        {
+            <li>@n?.FName @n?.LName</li>
+        }
+    }
+</ul>
+
+<div>@message</div>
+
+@code{
+    record Person(string FName, string LName);
+    record Animal(string Species);
+    /*class Person1
+    {
+    public string FName { get; init; }
+    public string LName { get; init; }
+    }*/
+
+    class PersonException : Exception
+    {
+        public Person? Person { get; init; } = null;
+
+        public PersonException(string message): base(message)
+        {
+        }
+        public PersonException(string message, Person person) : base(message)
+        {
+            Person = person;
+        }
+    }
+
+    List<Person> persons = new();
+    List<Person> result = new();
+    List<Animal> animals = new();
+
+    /*List<string> names = new() { "Jonas", "stina", "John", "Sigrid"  };*/
+    string FName = string.Empty, LName = string.Empty;
+    //List<string> result = new();
+    string message = string.Empty;
+
+    List<T> Get<T>(List<T>? list, Func<T, bool>? expression)
+    {
+        if (expression is null || list is null) throw new ArgumentNullException();
+
+        return list.Where(expression).ToList();
+    }
+
+    protected override void OnInitialized()
+    {
+        persons.Add(new Person("Jonas", "Doe"));
+        persons.Add(new Person("Stina", "Stins"));
+        persons.Add(new Person("Olle", "Ull"));
+        persons.Add(new Person("John", "Doe"));
+        persons.Add(new Person("Sigrid", "Jansson"));
+
+        animals.Add(new Animal("Lion"));
+        animals.Add(new Animal("Tiger"));
+        animals.Add(new Animal("Lion Fish"));
+    }
+
+    Person GetName()
+    {
+        try
+        {
+            var res = persons.Single(n =>
+                    n.FName.ToLower().StartsWith(FName.ToLower()) &&
+                    n.LName.ToLower().StartsWith(LName.ToLower())
+            );
+
+            return res;
+        }
+        catch
+        {
+            throw new PersonException("För många matchningar.");
+        }
+    }
+
+    List<Person> GetNameWithWhere()
+    {
+        try
+        {
+            var res = persons.Where(n =>
+                    n.FName.ToLower().StartsWith(FName.ToLower()) &&
+                    n.LName.ToLower().StartsWith(LName.ToLower())
+            );
+
+            if (res.Count() == 1)
+                throw new PersonException("Bara en träff.", res.First());
+            //throw new PersonException("Bara en träff.");
+
+            return res.ToList();
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    void FilterNames()
+    {
+        //foreach(var n in names)
+
+        //result = names.Where(n => n.ToLower().StartsWith(name.ToLower())).ToList();
+        result = persons.Where(n => 
+            n.FName.ToLower().StartsWith(FName.ToLower()) &&
+            n.LName.ToLower().StartsWith(LName.ToLower())
+        ).ToList();
+
+        try
+        {
+            /*var name = persons.Single(n =>
+                n.FName.ToLower().StartsWith(FName.ToLower()) &&
+                n.LName.ToLower().StartsWith(LName.ToLower())
+            );
+            var name = persons.First(n =>
+                n.FName.ToLower().StartsWith(FName.ToLower()) &&
+                n.LName.ToLower().StartsWith(LName.ToLower())
+            );*/
+
+            var animalList = Get<Animal>(animals, a =>
+                a.Species.ToLower().StartsWith("Lion".ToLower()));
+
+            var ns = Get<Person>(persons, n =>
+                n.FName.ToLower().StartsWith(FName.ToLower()) &&
+                n.LName.ToLower().StartsWith(LName.ToLower()));
+
+            var nameList = GetNameWithWhere();
+            var name = GetName();
+            message = $"{name.FName} {name.LName}";
+        }
+        catch (PersonException ex) when (ex.Person is not null)
+        {
+            message = $"{ex.Message} | {ex.Person?.FName} {ex.Person?.LName}";
+        }
+        catch (PersonException ex)
+        {
+            message = $"{ex.Message}";
+        }
+        catch
+        {
+            message = "Could not find a match.";
+        }
+    }
+}
